@@ -1,4 +1,8 @@
 # DiabGuard: Proactive Diabetes Prevention with Autoformer Time Series Analysis
+
+![Code review](https://github.com/IEEE-NOVA-SB/DiabGuard-Proactive-Diabetes-Prevention-with-Autoformer-Time-Series-Analysis/blob/main/pair_programming.png
+)
+
 DiabGuard leverages advanced time series analysis with Autoformer AI to predict and prevent diabetes onset. 
 
 By analyzing historical data, it provides personalized insights, empowering at-risk individuals with proactive health measures
