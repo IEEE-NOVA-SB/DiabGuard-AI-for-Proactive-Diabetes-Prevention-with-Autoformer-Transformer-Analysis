@@ -139,8 +139,6 @@ Make a pull request
 
 #### Include Credits, Authors and acknowledgment for contributions
 
-[Tiago Monteiro]((https://www.linkedin.com/in/tiago-monteiro-/)https://www.linkedin.com/in/tiago-monteiro-/)
-
-
-
 </a>
+
+[Tiago Monteiro](https://www.linkedin.com/in/tiago-monteiro-)
