@@ -3,30 +3,36 @@
 ![Code review](https://github.com/IEEE-NOVA-SB/DiabGuard-Proactive-Diabetes-Prevention-with-Autoformer-Time-Series-Analysis/blob/main/pair_programming.png
 )
 
-DiabGuard leverages advanced time series analysis with Autoformer AI to predict and prevent diabetes onset. 
+DiabGuard leverages advanced time series analysis with the Autoformer deep learning transformer to predict and prevent diabetes onset. 
 
-By analyzing historical data, it provides personalized insights, empowering at-risk individuals with proactive health measures
+By analyzing historical data, it provides personalized insights, empowering at-risk individuals with proactive health measures.
+
+[Autoformer research paper](https://arxiv.org/abs/2106.13008)
+
+[Autoformer hugging face link](https://huggingface.co/docs/transformers/main/model_doc/autoformer)
 
 
 ## Project Description
 
 ### What your application does?
 
-Our application, named DiabGuard, utilizes advanced time series analysis techniques powered by Autoformer, an AI model, to predict and prevent the onset of diabetes. 
+DiabGuard, uses advanced time series analysis techniques powered by Autoformer, an AI model, to predict and prevent the onset of diabetes. 
 
 By analyzing historical data and identifying patterns, DiabGuard offers personalized insights and recommendations for individuals at risk, empowering them to take proactive measures towards better health and diabetes prevention. 
  
 ### Why you used the technologies you used?
 
-We chose to use Autoformer, an advanced AI model, for its ability to effectively analyze time series data and make accurate predictions. 
+We chose to use Autoformer, an advanced AI model, for its ability to **effectively analyze time series data** and make accurate predictions. 
 
-Additionally, Autoformer integrates seamlessly with PyTorch and transformers, providing efficient implementation of our predictive model. 
+Additionally, Autoformer integrates seamlessly with PyTorch and transformers, providing efficient implementation of our predictive model, using the Hugging face transformer library.
 
-PyTorch Lightning was selected for its streamlined training process, enabling faster development and deployment of our solution.    
+[PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/) was selected for its streamlined training process, enabling faster development and deployment of our solution.    
     
 ### Some of the challenges you faced and features you hope to implement in the future?
 
-One challenge we faced was ensuring the scalability and efficiency of our model, especially when dealing with large volumes of time series data. In the future, we aim to enhance the interpretability of our predictions and further optimize the performance of DiabGuard. 
+One challenge we faced was ensuring the scalability and efficiency of our model, especially when dealing with large volumes of time series data. 
+
+In the future, we aim to enhance the interpretability of our predictions and further optimize the performance of DiabGuard. 
 
 Additionally, we plan to incorporate real-time monitoring capabilities and expand the scope of our application to include additional risk factors for diabetes.
 
