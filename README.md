@@ -1,4 +1,4 @@
-# DiabGuard: Proactive Diabetes Prevention with Autoformer Time Series Analysis
+# DiabGuard: AI for Proactive Diabetes Prevention with Autoformer Transformer Analysis
 
 ![Code review](https://github.com/IEEE-NOVA-SB/DiabGuard-Proactive-Diabetes-Prevention-with-Autoformer-Time-Series-Analysis/blob/main/pair_programming.png
 )
