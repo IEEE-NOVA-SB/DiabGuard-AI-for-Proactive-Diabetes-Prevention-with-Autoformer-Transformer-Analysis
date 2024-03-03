@@ -85,7 +85,7 @@ Replace ```myenv``` with the name of your virtual environment.
 Once the virtual environment is activated, you can install Jupyter Notebook using pip:
 
 ```
-pip install jupyter ipykernel torch lightning transformers ucimlrepo optuna
+pip install jupyter ipykernel torch lightning transformers ucimlrepo optuna pandas numpy
 ```
 This will install Jupyter Notebook within your virtual environment.
 
