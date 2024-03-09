@@ -1,162 +1,202 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Tarefas
-# 
-# ### pré processar dataset e ver como entra no modelo bem
-# 
-# ### como usar optuna ou outra forma de hypterparameter optimization para o modelo
-
-# Tokenizing a dataset, especially for tasks beyond traditional natural language processing (NLP), such as time series prediction or processing numerical and categorical data, requires a tailored approach. The "best" way to tokenize such data depends on the specific characteristics of your dataset and the model you plan to use. Here are several strategies you can consider, each with its own advantages:
-# 1. For Numerical Data
-# 
-#     Binning/Quantization: This involves dividing the range of numerical values into bins and assigning each bin a unique token. It's particularly useful for continuous data, helping to reduce the model's complexity by categorizing similar values.
-# 
-#     Normalization and Discretization: Normalize the data to a specific range (e.g., 0 to 1) and then discretize it into fixed intervals. Each interval can then be represented as a token. This approach maintains relative differences between values.
-# 
-#     Direct Encoding (with Caution): For numerical values that already take on a limited set of integers, you might consider using these directly as tokens. However, this can be challenging for models to interpret meaningfully and is generally less common.
-# 
-# 2. For Categorical Data
-# 
-#     One-hot Encoding: Convert each categorical value to a binary vector with a 1 in the position corresponding to the category. While not directly a "tokenization" method, it's a form of encoding that can be used prior to tokenization for models that require numerical input.
-# 
-#     Integer Encoding: Assign each unique category a unique integer. This is a straightforward form of tokenization but requires careful handling to avoid implying ordinal relationships where none exist.
-# 
-# 3. For Mixed Data Types
-# 
-#     Custom Tokenization: Develop a tokenization scheme that handles different types of data within your dataset, assigning unique tokens to different categories, bins, or normalized values across your features.
-# 
-#     Embedding Layers: Use embedding layers to map your tokenized numerical and categorical data to dense vectors of fixed size. This approach is particularly useful in deep learning models where embeddings can capture more nuanced relationships between tokens.
-# 
-# 4. Advanced Techniques
-# 
-#     Learned Embeddings: Instead of manually tokenizing and then applying a static embedding, some models can learn the most effective representations during training. This can be particularly powerful for complex datasets.
-# 
-#     Autoencoder-Based: For high-dimensional data, an autoencoder can learn a compressed representation of the data, which could then be discretized and used as tokens.
-# 
-# Choosing the Right Approach
-# 
-#     Understand Your Data: Analyze the characteristics of your data (e.g., range of numerical values, number of categories, presence of ordinal relationships) to choose the most appropriate tokenization method.
-# 
-#     Consider Your Model: Different models may require or benefit from specific types of input. For example, transformer-based models typically work with integer tokens and may benefit from embeddings, while models designed for continuous input might handle normalized numerical values more directly.
-# 
-#     Experiment and Validate: Often, the best approach is found through experimentation. Try different tokenization methods and evaluate your model's performance to find the most effective strategy.
-# 
-# 
-# 
-# --------
-# 
-# 
-# 
-# Yes, each value in a column can be represented as a token, but this process requires careful consideration of how the data is encoded and prepared for the model. Tokenization typically refers to converting text data into numerical tokens that a machine learning model can understand. However, when dealing with numerical or non-textual data, such as values in a column of a time series dataset, the concept of "tokenization" can be adapted to suit the data type.
-# 
-# For non-textual data, tokenization might involve different strategies, such as:
-# 
-#     Discretization: Numerical values can be discretized into bins, and each bin can be represented as a token. This approach is useful for continuous data, allowing the model to treat each bin as a categorical value.
-# 
-#     Categorical Encoding: If the values in a column are categorical (including discretized numerical values), each unique category can be assigned a unique token. This is straightforward for inherently categorical data.
-# 
-#     Embedding Numerical Values: For models that accept numerical input directly (e.g., traditional neural networks for time series prediction), each numerical value could be considered an "implicit token" that is fed into an embedding layer. This is not tokenization in the traditional sense but rather a method of preparing numerical data for model input.
-# 
-#     Custom Encoding Schemes: Depending on the nature of the data and the model, custom encoding schemes may be developed. For example, in time series data, patterns or sequences of values might be encoded into tokens that represent specific states or transitions.
-# 
-# For the case of using AutoModelForCausalLM with time series data, if you wish to treat each value as a token, you would need to:
-# 
-#     Encode the Values: Convert each numerical value into a discrete token. This could involve mapping each unique value to a unique integer or discretizing the range of values and mapping each range to a unique integer.
-# 
-#     Use an Appropriate Tokenizer: Although the AutoTokenizer is designed for text data, you would need to ensure that it can handle your encoded values appropriately. This might involve custom preprocessing steps to ensure that the tokenizer interprets your numerical tokens correctly.
-# 
-#     Consider Model Compatibility: Ensure that the model can interpret and learn from the encoded tokens effectively. Since causal language models are designed for text, using them for numerical time series data in this way is unconventional and may require experimentation and adjustment to achieve good results.
-# 
-# It's important to note that treating each value as a token is more common in text processing. When applying this concept to numerical data for a model originally designed for natural language processing (NLP), it's essential to carefully consider how the data is represented and whether this approach aligns with the model's capabilities and the goals of your analysis.
-
 # In[ ]:
 
 
+# Import necessary libraries
 import torch
-import pytorch_lightning as pl
-from torch.utils.data import Dataset, DataLoader
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch.nn as nn
 
-from ucimlrepo import fetch_ucirepo 
+
+import pandas as pd
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from transformers import TrainingArguments, Trainer
+from transformers import AutoformerConfig, AutoformerModel
 import optuna
 
-
-# In[ ]:
-
-
-# fetch dataset 
-diabetes_130_us_hospitals_for_years_1999_2008 = fetch_ucirepo(id=296) 
-  
-# data (as pandas dataframes) 
-X = diabetes_130_us_hospitals_for_years_1999_2008.data.features 
-y = diabetes_130_us_hospitals_for_years_1999_2008.data.targets 
-
-print("Number of features:" + str(X.shape[1]))
-
-print(X.head(10))
-
-print("Number of targets:" + str(y.shape[1]))
-
-print(y.head(10))
+# Fetch dataset
+from ucimlrepo import fetch_ucirepo
 
 
 # In[ ]:
 
 
-for column in X.columns:
-    unique_values = X[column].unique()
-    print(f"Unique values in column '{column}': {unique_values} \n")
+dataset = fetch_ucirepo(id=296)
+X, y = dataset.data.features, dataset.data.targets
 
 
 # In[ ]:
 
 
-class TimeSeriesDataset(Dataset):
-    def __init__(self, sequences, targets):
-        self.sequences = sequences
-        self.targets = targets
-
-    def __len__(self):
-        return len(self.sequences)
-
-    def __getitem__(self, idx):
-        return self.sequences[idx], self.targets[idx]
+print(X)
 
 
 # In[ ]:
 
 
-class AutoformerTimeSeriesPredictor(pl.LightningModule):
-    def __init__(self, model_name='facebook/autoformer', sequence_length=128):
-        super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.sequence_length = sequence_length
-
-    def forward(self, input_ids):
-        outputs = self.model(input_ids=input_ids)
-        return outputs.logits
-
-    def training_step(self, batch, batch_idx):
-        sequences, targets = batch
-        outputs = self(sequences)
-        loss = torch.nn.functional.mse_loss(outputs, targets)
-        self.log('train_loss', loss)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.001)
+print(y)
 
 
 # In[ ]:
 
 
-dataset = TimeSeriesDataset(sequences, targets)
-train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+# Replace NaN in numerical columns with the median and in categorical columns with 'Unknown'
+for col in X.columns:
+    if pd.api.types.is_numeric_dtype(X[col]):
+        X[col].fillna(X[col].median(), inplace=True)
+    elif pd.api.types.is_object_dtype(X[col]) or pd.api.types.is_categorical_dtype(X[col]):
+        X[col].fillna('Unknown', inplace=True)  # Or use mode: X[col].fillna(X[col].mode()[0], inplace=True)
 
-model = AutoformerTimeSeriesPredictor()
+# Encode categorical features using LabelEncoder
+label_encoders = {col: LabelEncoder().fit(X[col]) for col in X.select_dtypes(include=['object', 'category']).columns}
+X = X.apply(lambda col: label_encoders[col.name].transform(col) if col.name in label_encoders else col)
 
-trainer = pl.Trainer(max_epochs=10)
-trainer.fit(model, train_loader)
+print(X)
+
+
+# In[ ]:
+
+
+# Assuming 'y' is a DataFrame with a single target column
+column_name = y.columns[0]  # Dynamically get the name of the column
+
+# Encode the target column if it's categorical
+if y[column_name].dtype == 'object' or y[column_name].dtype.name == 'category':
+    le_y = LabelEncoder()
+    y[column_name] = le_y.fit_transform(y[column_name].astype(str))
+
+print(y)
+
+
+# In[ ]:
+
+
+# Splitting the dataset and scaling features
+X_train, X_test, y_train_encoded, y_test_encoded = train_test_split(X, y, test_size=0.2, random_state=42)
+scaler = StandardScaler().fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+# ## Codigo com linhas de codigo mais pequenas
+
+# In[ ]:
+
+
+# Convert numpy arrays to PyTorch tensors
+X_train_tensor = torch.tensor(X_train_scaled.values, dtype=torch.float32) if isinstance(X_train_scaled, pd.DataFrame) else torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train_encoded.values, dtype=torch.long) if isinstance(y_train_encoded, pd.DataFrame) else torch.tensor(y_train_encoded, dtype=torch.long)
+X_test_tensor = torch.tensor(X_test_scaled.values, dtype=torch.float32) if isinstance(X_test_scaled, pd.DataFrame) else torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test_encoded.values, dtype=torch.long) if isinstance(y_test_encoded, pd.DataFrame) else torch.tensor(y_test_encoded, dtype=torch.long)
+
+
+# In[ ]:
+
+
+# DataLoader
+train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+val_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False) # Typically, you don't need to shuffle the test set
+
+
+# In[ ]:
+
+
+# Initializing a default Autoformer configuration
+configuration = AutoformerConfig(
+    # Add your model-specific configurations here
+    prediction_length=10,  # Example: predict 10 time steps into the future
+    context_length=30,  # Example: look at 30 time steps in the past
+    # You might need to adjust other parameters depending on your dataset and requirements
+    feature_size=47,  # Assuming you have 47 features
+)
+# Initializing a model from the configuration
+model = AutoformerModel(configuration)
+
+# Accessing the model configuration if needed
+configuration = model.config
+
+
+# In[ ]:
+
+
+class AutoformerClassifier(nn.Module):
+    def __init__(self, autoformer_model, num_features, num_classes):
+        super(AutoformerClassifier, self).__init__()
+        self.autoformer = autoformer_model  # The loaded Autoformer model
+        self.classifier = nn.Linear(num_features, num_classes)  # Classification layer
+
+    def forward(self, past_time_features, past_observed_mask):
+        # Adjust the forward method to accept past_time_features and past_observed_mask
+        outputs = self.autoformer(past_time_features=past_time_features, past_observed_mask=past_observed_mask)
+        
+        # Assuming we are interested in the last timestep's output for classification
+        # You might need to adapt this depending on your specific use case and what the model outputs
+        # For instance, outputs.last_hidden_state might not be directly applicable depending on how Autoformer's output is structured
+        last_hidden_state = outputs.last_hidden_state if hasattr(outputs, 'last_hidden_state') else outputs[0]
+        logits = self.classifier(last_hidden_state[:, -1, :])
+        return logits
+
+
+# In[ ]:
+
+
+def train_and_evaluate(model, learning_rate, X_train, mask_train, y_train, X_val, epochs=3):
+    model.train()  # Set the model to training mode
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    
+    for epoch in range(epochs):
+        # Training loop
+        for X_batch, mask_batch, y_batch in train_loader:
+            optimizer.zero_grad()
+            outputs = model(past_time_features=X_batch, past_observed_mask=mask_batch)
+            loss = nn.CrossEntropyLoss()(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+        
+        # Validation loop
+        model.eval()  # Set the model to evaluation mode
+        total, correct = 0, 0
+        with torch.no_grad():  # No gradients needed for validation
+            for X_batch, mask_batch, y_batch in val_loader:
+                outputs = model(past_time_features=X_batch, past_observed_mask=mask_batch)
+                _, predicted = torch.max(outputs.data, 1)  # Get the index of the max log-probability
+                total += y_batch.size(0)
+                correct += (predicted == y_batch).sum().item()
+
+        validation_accuracy = correct / total
+        print(f'Epoch {epoch+1}, Validation Accuracy: {validation_accuracy:.4f}')
+    
+    return validation_accuracy
+
+
+# In[ ]:
+
+
+def objective(trial):
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-2)
+    
+    # Assuming the datasets are tensors already, otherwise, convert them
+    validation_accuracy = train_and_evaluate(model, learning_rate, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor)
+    
+    return validation_accuracy
+
+
+# In[ ]:
+
+
+study = optuna.create_study(direction="maximize")
+study.optimize(objective, n_trials=10)  # Adjust n_trials as needed based on computational resources and needs
+
+
+# In[ ]:
+
+
+print(f'Best trial: {study.best_trial.params}')
 
